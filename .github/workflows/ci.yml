@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: archify/package-lock.json
+      - name: Install renderer dependencies
+        run: npm ci
+        working-directory: archify
+      - name: Golden-file + schema tests
+        run: npm test
+        working-directory: archify
+
+  zip-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild archify.zip and compare contents
+        run: |
+          scripts/build-zip.sh /tmp/fresh.zip
+          mkdir /tmp/fresh /tmp/checked
+          unzip -q /tmp/fresh.zip -d /tmp/fresh
+          unzip -q archify.zip -d /tmp/checked
+          if ! diff -r /tmp/fresh/archify /tmp/checked/archify; then
+            echo '::error::archify.zip is stale — run scripts/build-zip.sh and commit the result'
+            exit 1
+          fi
