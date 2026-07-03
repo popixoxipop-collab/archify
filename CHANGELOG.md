@@ -2,7 +2,7 @@
 
 All notable changes are documented here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [2.8.0] — 2026-07-03
 
 ### Added
 - **Opt-in trace animation.** Renderer-backed diagrams can set `meta.animation: "trace"` to animate marked arrows and nodes inside the generated HTML/SVG. The default output remains static, and the CSS respects `prefers-reduced-motion`.

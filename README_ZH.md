@@ -17,7 +17,7 @@ Archify 是一个可用于 Claude、Codex CLI 和 opencode 的 agent skill：你
 
 ![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)
 ![Agent Skill](https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square)
-![Version](https://img.shields.io/badge/version-2.7.0-0891b2?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.8.0-0891b2?style=flat-square)
 
 **[在线落地页 → tt-a1i.github.io/archify](https://tt-a1i.github.io/archify/)**
 
