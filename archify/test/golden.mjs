@@ -1,6 +1,6 @@
 // Golden-file harness for the archify renderers. No test framework needed:
-// renderers are deterministic, so fresh renders must byte-match the
-// checked-in example HTML. Also covers schema enforcement (negative cases),
+// renderers are deterministic, so fresh renders must match the checked-in
+// example HTML aside from platform checkout line endings. Also covers schema enforcement (negative cases),
 // template freshness of the architecture-mode example, and version sync.
 //
 // Run from the skill folder: npm test
@@ -35,8 +35,12 @@ function render(mode, inputPath, outPath) {
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
 }
 
+function normalizeNewlines(text) {
+  return text.replace(/\r\n?/g, '\n');
+}
+
 // ---------------------------------------------------------------------------
-console.log('golden renders (renderer output must byte-match checked-in examples)');
+console.log('golden renders (renderer output must match checked-in examples)');
 
 const GOLDEN = [
   ['workflow', 'agent-tool-call.workflow.json', 'workflow-agent-tool-call-rendered.html'],
@@ -52,7 +56,7 @@ for (const [mode, input, golden] of GOLDEN) {
     render(mode, path.join(skillRoot, 'examples', input), out);
     const fresh = fs.readFileSync(out, 'utf8');
     const checked = fs.readFileSync(path.join(repoRoot, 'examples', golden), 'utf8');
-    check(`${mode}: ${golden}`, fresh === checked,
+    check(`${mode}: ${golden}`, normalizeNewlines(fresh) === normalizeNewlines(checked),
       `fresh render differs from examples/${golden}; if the change is intentional, re-render the examples and commit them`);
   } catch (err) {
     check(`${mode}: ${golden}`, false, String(err.stderr || err.message).slice(0, 300));

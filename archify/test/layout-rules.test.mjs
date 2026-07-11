@@ -114,6 +114,12 @@ const CASES = [
     (d) => { d.boundaries[0].wraps.push('ghost'); }, ['wraps unknown component "ghost"']],
   ['architecture: label wider than component', 'architecture',
     (d) => { d.components[0].label = 'An Extremely Long Component Label Overflow'; }, ['wider than component', 'shorten the label']],
+  ['architecture: component width must be positive', 'architecture',
+    (d) => { d.components[0].size = [0, 60]; }, ['must be > 0']],
+  ['architecture: component height must be positive', 'architecture',
+    (d) => { d.components[0].size = [120, 0]; }, ['must be > 0']],
+  ['architecture: component size rejects negative dimensions', 'architecture',
+    (d) => { d.components[0].size = [-1, 60]; }, ['must be > 0']],
   ['architecture: component overlap suggests fix', 'architecture',
     (d) => { d.components[1].pos = [...d.components[0].pos]; }, ['Suggested fix', 'move "']],
 ];
