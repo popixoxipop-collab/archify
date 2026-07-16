@@ -69,6 +69,7 @@ All five modes follow the same loop:
 3. Render: `node bin/archify.mjs render <type> <input>.json <output>.html` (paths relative to this skill's folder).
 4. Validate the generated artifact: `node bin/archify.mjs validate <type> <input>.json --json`, or check an existing HTML file with `node bin/archify.mjs check <output>.html`. This catches malformed SVG output, non-finite SVG values, two-point diagonal arrows, and arrows crossing the legend.
 5. If either step fails, the error names the JSON path or the fix (thresholds, valid ranges, which knob to change). Fix the JSON and re-run; never edit the renderer.
+6. If the diagram contains any hand-placed SVG — custom shapes injected after rendering (e.g. logic gates), or full hand-placed fallback output — `check` does not cover it: its legend-crossing and arrow-detection logic only inspects archify's own `a-*`-classed connectors against the legend, not arbitrary sibling boxes or text. Run the two standalone checkers described under **Geometric overlap checkers** below.
 
 Schema violations exit non-zero with path-prefixed messages like `/nodes/3 (id/label: "router") must NOT have additional properties`. The renderers additionally fail fast on layout problems: node/state overlap (including cross-lane), labels colliding with nodes or other labels, labels wider than their node, out-of-range columns/rows, too-short edges, workflow edges crossing unrelated nodes, and legends outside the viewBox. CJK text is measured at double width automatically.
 
@@ -272,6 +273,19 @@ Typography inherits JetBrains Mono from the SVG root. Sizes: 11–12px component
 4. Compute max(y + height) over all SVG elements: viewBox height must exceed it by ≥20px; same for x/width.
 5. Legend y is below every boundary's y + height.
 6. The `.toolbar`, `<script>` blocks, and `:root` / `[data-theme]` CSS are untouched — they ARE the theme toggle and export menu.
+
+### Geometric overlap checkers (hand-placed SVG, custom shapes)
+
+The manual checklist above and `bin/archify.mjs check` both stop short of one failure mode: a connector or label that visually cuts through a box it has nothing to do with. `check`'s own arrow-crossing logic is scoped to the legend and to archify's own `a-default`/`a-emphasis`/`a-security`/`a-dashed` class convention by design — it was never meant to catch a hand-authored connector crossing an arbitrary sibling node, because renderer-only output can't produce that shape of bug. Hand-placed SVG can, especially once custom shapes (logic gates, non-standard node types) are involved: the renderer's overlap guards don't run on geometry it didn't lay out.
+
+Two zero-dependency-by-default scripts close that gap, both operating on the same structural convention this skill already asks for (a shape is the first child of a `<g transform="translate(x y)">`; a connector is a top-level `<path>`/`<line>` with a real stroke, not nested in any such group):
+
+- **`scripts/check-line-overlaps.mjs <file.html>`** (`npm run check:overlaps -- <file.html>`) — reports every connector segment that passes through the real geometry of a shape it isn't part of: true polygon containment for diamonds/custom gate shapes (not just their bounding box, which false-positives near pointed corners), full bounding box for rects. No dependencies beyond Node.
+- **`scripts/check-text-overlaps.mjs <file.html>`** (`npm run check:text-overlaps -- <file.html>`) — reports text-vs-text, text-vs-box (excluding a label's own container), and text-vs-line overlaps, measured via a real headless browser's `getBBox()`/`getCTM()` rather than a static character-width estimate (mixed CJK/Latin content and font-weight make source-level width guesses unreliable in both directions — they miss real collisions and flag ones that don't actually happen). This one needs a browser: `npm install --no-save playwright && npx playwright install chromium` once, then run it directly. It is intentionally **not** wired into `npm test` or `bin/archify.mjs check` — this skill ships dependency-free by design (see Setup), and a browser download shouldn't become a silent default. Skip it if Node-only is a hard requirement; `check-line-overlaps.mjs` alone still catches the connector-geometry class of bug.
+
+Both exit non-zero on any finding and print each one with enough detail (path data prefix, shape label, bounding boxes) to locate and fix directly, matching the exit-code convention of the rest of the CLI.
+
+**Case study**: built against a real 30+ node, multi-lane hand-placed diagram with custom gate shapes across several refinement rounds. A first round of these checks (line-vs-shape) found 16 real "connector cuts through an unrelated box" defects that had only been caught before by visually staring at screenshots; a second round (text overlap) found 29 more text-vs-text/text-vs-box/text-vs-line defects on the same diagram, including cases a static text-width estimate would have gotten wrong in both directions. Neither class was reachable from the existing `check` command's legend-only, archify-class-only arrow detection — hence these as a separate, explicit step rather than folding them into `check`.
 
 ## Output
 
